@@ -15,3 +15,9 @@ received/
 sample.bin
 testdata/
 logs/
+build/
+dist/
+*.spec
+logs/
+testdata/
+sample.bin
