@@ -26,10 +26,23 @@ dist/
 *.spec
 
 # Local Codex / OMX workspace files
-.codex/
 .omx/
 AGENTS.md
 
 # OS files
 .DS_Store
 Thumbs.db
+.codex/*
+!.codex/agents/
+!.codex/agents/**
+!.codex/skills/
+!.codex/skills/**
+.codex/skills/.system/**
+!.codex/prompts/
+!.codex/prompts/**
+
+# Keep local OMX/Codex runtime out of Git
+.codex/
+.omx/
+.codex_backup_*/
+AGENTS.md
