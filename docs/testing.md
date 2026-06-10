@@ -1,74 +1,101 @@
-# 테스트 절차
+# ConnectBox 테스트 가이드
 
-이 문서는 중간발표 MVP의 로컬 테스트와 같은 LAN 테스트 절차를 분리해 정리합니다.
+이 문서는 최종발표 버전의 로컬 자동 테스트와 실제 LAN 테스트 절차를 정리합니다.
 
-## 로컬 테스트
-
-목적: 서버와 클라이언트를 같은 PC에서 실행해 프로토콜 흐름을 빠르게 확인합니다.
-
-1. PowerShell 창 2개를 엽니다.
-2. 첫 번째 창에서 서버를 실행합니다.
+## 1. 컴파일 확인
 
 ```powershell
-python -m server.server_main --host 127.0.0.1 --port 5001 --output-dir received
+python -m py_compile common\protocol.py server\server_main.py client\client_main.py gui\connectbox_gui.py scripts\smoke_test_local.py scripts\smoke_test_multi_files.py scripts\smoke_test_folder.py scripts\build_exe.py
 ```
 
-3. 두 번째 창에서 테스트 파일을 생성합니다.
+## 2. 로컬 자동 테스트
+
+각 테스트는 서버 프로세스를 로컬에서 띄우고 클라이언트를 실행한 뒤 결과 파일을
+검증합니다.
 
 ```powershell
-python scripts\create_dummy_file.py testdata\sample.bin --size 1048576
+python scripts\smoke_test_local.py --port 5011 --size-kb 10 --startup-wait 0.5
+python scripts\smoke_test_multi_files.py --port 5012 --startup-wait 0.5
+python scripts\smoke_test_folder.py --port 5013 --startup-wait 0.5
 ```
 
-4. 두 번째 창에서 클라이언트를 실행합니다.
+검증 항목:
+
+- 단일 파일 전송 PASS
+- 다중 파일 3개 전송 PASS
+- 폴더 전송 4개 파일 PASS
+- 중첩 폴더 구조 복원
+- 빈 파일 전송 처리
+
+실패하면 출력된 `logs/...` 경로에서 다음 파일을 확인합니다.
+
+- `server_stdout.log`
+- `server_stderr.log`
+- `client_stdout.log`
+- `client_stderr.log`
+
+## 3. CLI 수동 테스트
+
+PowerShell 창 두 개를 엽니다.
+
+서버:
 
 ```powershell
-python -m client.client_main 127.0.0.1 testdata\sample.bin --port 5001
+python -m server.server_main --host 127.0.0.1 --port 5001 --save-dir received
 ```
 
-5. `received` 폴더에 파일이 생겼는지 확인합니다.
+클라이언트:
 
 ```powershell
-dir received
+python scripts\create_dummy_file.py --output testdata\manual.bin --size-kb 100
+python -m client.client_main --host 127.0.0.1 --port 5001 --file testdata\manual.bin
 ```
 
-현재 서버/클라이언트가 골격 상태라면 실제 전송 대신 준비 메시지와 TODO 메시지만
-출력됩니다.
+여러 파일:
 
-## 같은 LAN 테스트
+```powershell
+python -m client.client_main --host 127.0.0.1 --port 5001 --files testdata\a.txt testdata\b.txt
+```
 
-목적: 두 Windows PC 사이에서 실제 네트워크를 거치는 TCP 연결을 확인합니다.
+폴더:
 
-1. 서버 PC와 클라이언트 PC를 같은 Wi-Fi 또는 같은 공유기 LAN에 연결합니다.
-2. 서버 PC에서 IPv4 주소를 확인합니다.
+```powershell
+python -m client.client_main --host 127.0.0.1 --port 5001 --folder testdata\folder_sample
+```
+
+## 4. GUI 수동 테스트
+
+```powershell
+python -m gui.connectbox_gui
+```
+
+확인 항목:
+
+- 받기 모드에서 서버 시작 가능
+- 보내기 모드에서 파일 여러 개 선택 가능
+- 보내기 모드에서 폴더 선택 가능
+- 현재 파일 진행률 표시
+- 전체 진행률 표시
+- 상태 로그 표시
+- 저장 폴더에 파일/폴더 구조 생성
+
+## 5. 같은 LAN 두 PC 테스트
+
+서버 PC:
 
 ```powershell
 ipconfig
+python -m server.server_main --host 0.0.0.0 --port 5001 --save-dir received
 ```
 
-3. 서버 PC에서 서버를 실행합니다.
+클라이언트 PC:
 
 ```powershell
-python -m server.server_main --host 0.0.0.0 --port 5001 --output-dir received
+python -m client.client_main --host <SERVER_IPV4> --port 5001 --folder testdata\folder_sample
 ```
 
-4. 클라이언트 PC에서 테스트 파일을 생성합니다.
+주의:
 
-```powershell
-python scripts\create_dummy_file.py testdata\sample.bin --size 1048576
-```
-
-5. 클라이언트 PC에서 서버 IPv4 주소로 접속합니다.
-
-```powershell
-python -m client.client_main <SERVER_IPV4> testdata\sample.bin --port 5001
-```
-
-6. 서버 PC의 `received` 폴더와 양쪽 콘솔 로그를 확인합니다.
-
-## 확인 포인트
-
-- 서버가 먼저 실행되어 있는가
-- 서버 IP와 클라이언트 입력 IP가 같은가
-- 서버 포트와 클라이언트 포트가 같은가
-- Windows 방화벽에서 Python 또는 TCP 5001번 포트를 허용했는가
-- 같은 LAN에서 기기 간 통신이 허용되는 네트워크인가
+- `<SERVER_IPV4>`는 서버 PC의 IPv4 주소입니다.
+- `127.0.0.1`은 자기 자신을 의미하므로 다른 PC에서 접속할 때 사용할 수 없습니다.
+- Windows 방화벽이 Python 또는 exe의 TCP 수신을 막을 수 있습니다.

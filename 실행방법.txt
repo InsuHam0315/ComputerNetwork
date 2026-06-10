@@ -1,0 +1,65 @@
+ConnectBox 최종발표 실행방법
+===========================
+
+1. GUI 실행
+
+PowerShell에서 프로젝트 루트로 이동한 뒤 실행합니다.
+
+    python -m gui.connectbox_gui
+
+받기 모드:
+    Host: 0.0.0.0  (같은 PC 테스트는 127.0.0.1도 가능)
+    Port: 5001
+    저장 폴더: received
+    [받기 서버 시작] 클릭
+
+보내기 모드:
+    서버 IP: 받는 PC의 IPv4 주소
+    Port: 5001
+    [파일 추가] 또는 [폴더 선택]
+    [전송 시작] 클릭
+
+
+2. CLI 실행
+
+받기 서버:
+
+    python -m server.server_main --host 0.0.0.0 --port 5001 --save-dir received
+
+단일 파일 보내기:
+
+    python -m client.client_main --host 127.0.0.1 --port 5001 --file testdata\sample.bin
+
+여러 파일 보내기:
+
+    python -m client.client_main --host 127.0.0.1 --port 5001 --files testdata\a.txt testdata\b.txt
+
+폴더 보내기:
+
+    python -m client.client_main --host 127.0.0.1 --port 5001 --folder testdata\folder_sample
+
+
+3. 자동 테스트
+
+    python -m py_compile common\protocol.py server\server_main.py client\client_main.py gui\connectbox_gui.py scripts\smoke_test_local.py scripts\smoke_test_multi_files.py scripts\smoke_test_folder.py scripts\build_exe.py
+    python scripts\smoke_test_local.py --port 5011 --size-kb 10 --startup-wait 0.5
+    python scripts\smoke_test_multi_files.py --port 5012 --startup-wait 0.5
+    python scripts\smoke_test_folder.py --port 5013 --startup-wait 0.5
+
+
+4. Windows exe 패키징
+
+PyInstaller는 패키징할 PC에서만 설치합니다.
+
+    python -m pip install pyinstaller
+    python scripts\build_exe.py --target all
+
+결과물은 dist 폴더에 생성됩니다.
+
+
+5. LAN 시연 주의사항
+
+- 두 PC가 같은 Wi-Fi 또는 같은 유선 LAN에 연결되어야 합니다.
+- 받는 PC에서 ipconfig로 IPv4 주소를 확인합니다.
+- 보내는 PC에서는 127.0.0.1이 아니라 받는 PC의 IPv4 주소를 입력합니다.
+- Windows 방화벽 경고가 나오면 현재 네트워크에서 Python 또는 ConnectBox exe를 허용합니다.

@@ -1,66 +1,124 @@
-# 발표 시연 순서
+# ConnectBox 최종발표 시연 계획
 
-## 1. 프로젝트 개요
+## 1. 프로젝트 한 줄 소개
 
-같은 LAN의 두 Windows PC 사이에서 TCP 소켓으로 단일 파일을 직접 전송하는
-CLI 프로그램입니다.
+ConnectBox는 같은 LAN에 있는 Windows PC 사이에서 중앙 서버나 클라우드 없이
+TCP socket으로 파일을 직접 전송하는 Python 기반 앱입니다.
 
-## 2. MVP 범위 설명
+## 2. 중간발표 대비 확장점
 
-- TCP 기반 단일 파일 전송
-- JSON 메타데이터 교환
-- 청크 기반 파일 본문 전송
-- 진행률과 완료 응답 출력
-- Python 표준 라이브러리만 사용
+- CLI 단일 파일 전송 유지
+- 다중 파일 전송 추가
+- 폴더 전송 추가
+- 폴더 구조 복원 추가
+- 전송 세션 프로토콜 v2 추가
+- 현재 파일/전체 진행률 표시
+- Tkinter GUI 추가
+- 자동 테스트 3종으로 확장
+- Windows exe 패키징 준비
 
-## 3. 프로토콜 설명
+## 3. 아키텍처 설명
 
 ```text
-client -> server: FILE_SEND metadata
-server -> client: READY
-client -> server: file body chunks
-server -> client: COMPLETE or ERROR
+GUI / CLI
+  |
+  v
+client.client_main.send_paths()
+  |
+  v
+common.protocol metadata helpers
+  |
+  v
+TCP socket
+  |
+  v
+server.server_main.run_server()
+  |
+  v
+received/ 폴더에 저장
 ```
 
-메타데이터 앞에는 4-byte 길이 값이 붙고, 이후 UTF-8 JSON이 전송됩니다.
+GUI는 전송 로직을 다시 구현하지 않고 CLI와 같은 core 함수를 호출합니다.
 
-## 4. 로컬 시연
+## 4. 프로토콜 설명
+
+### v1
+
+단일 파일 호환용입니다.
+
+```text
+FILE_SEND -> READY -> bytes -> COMPLETE
+```
+
+### v2
+
+다중 파일/폴더용 세션 프로토콜입니다.
+
+```text
+TRANSFER_START
+FILE_ITEM -> bytes -> FILE_DONE
+FILE_ITEM -> bytes -> FILE_DONE
+TRANSFER_END
+```
+
+폴더 전송은 `relative_path`를 사용해 서버에서 원래 구조를 복원합니다.
+
+## 5. 로컬 시연 순서
+
+1. GUI 실행
 
 ```powershell
-python -m server.server_main --host 127.0.0.1 --port 5001 --output-dir received
-python scripts\create_dummy_file.py testdata\sample.bin --size 1048576
-python -m client.client_main 127.0.0.1 testdata\sample.bin --port 5001
-dir received
+python -m gui.connectbox_gui
 ```
 
-## 5. LAN 시연
+2. 받기 모드에서 Host `127.0.0.1`, Port `5001`, 저장 폴더 `received` 선택
+3. 받기 서버 시작
+4. 보내기 모드에서 서버 IP `127.0.0.1`, Port `5001` 입력
+5. 파일 여러 개 선택 후 전송
+6. 진행률과 로그 확인
+7. 다시 받기 서버 시작
+8. 폴더 선택 후 전송
+9. `received/선택한폴더명/...` 구조 복원 확인
+
+## 6. 자동 테스트 시연
+
+```powershell
+python scripts\smoke_test_local.py --port 5011 --size-kb 10 --startup-wait 0.5
+python scripts\smoke_test_multi_files.py --port 5012 --startup-wait 0.5
+python scripts\smoke_test_folder.py --port 5013 --startup-wait 0.5
+```
+
+세 명령 모두 `PASS`를 출력하는 것을 보여줍니다.
+
+## 7. LAN 시연 순서
 
 서버 PC:
 
 ```powershell
 ipconfig
-python -m server.server_main --host 0.0.0.0 --port 5001 --output-dir received
+python -m gui.connectbox_gui
 ```
+
+- 받기 모드 Host: `0.0.0.0`
+- Port: `5001`
+- 받기 서버 시작
 
 클라이언트 PC:
 
 ```powershell
-python scripts\create_dummy_file.py testdata\sample.bin --size 1048576
-python -m client.client_main <SERVER_IPV4> testdata\sample.bin --port 5001
+python -m gui.connectbox_gui
 ```
 
-## 6. 결과 설명
+- 보내기 모드 서버 IP: 서버 PC IPv4
+- Port: `5001`
+- 파일 또는 폴더 선택
+- 전송 시작
 
-- TCP 연결이 수립된 뒤 애플리케이션 계층 프로토콜이 동작합니다.
-- 먼저 파일명과 파일 크기를 담은 메타데이터를 보냅니다.
-- 서버가 받을 준비가 되면 `READY`를 응답합니다.
-- 클라이언트는 파일 본문을 청크 단위로 전송합니다.
-- 서버는 지정된 파일 크기만큼 수신하면 `COMPLETE`를 응답합니다.
+## 8. 발표 중 강조할 점
 
-## 7. 확장 계획
-
-- 여러 파일 또는 폴더 전송
-- 체크섬 검증
-- 이어받기
-- GUI
-- 다중 클라이언트 처리
+- TCP는 byte stream이므로 메타데이터 길이 prefix를 직접 설계했다.
+- 파일 본문은 chunk 단위로 보내므로 큰 파일도 전체를 메모리에 올리지 않는다.
+- v1을 유지해 기존 MVP 테스트를 깨지 않았다.
+- v2는 세션 단위라 파일 여러 개와 폴더를 같은 흐름으로 처리한다.
+- 서버는 `relative_path`를 검증해 경로 탈출을 막고 저장 폴더 안에만 쓴다.
+- GUI는 표준 Tkinter만 사용해 외부 GUI 의존성을 늘리지 않았다.

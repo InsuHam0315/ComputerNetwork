@@ -1,112 +1,55 @@
-# Test Checklist
+# ConnectBox 최종발표 테스트 체크리스트
 
-This checklist separates the local smoke test from the real LAN test. The smoke
-test only proves that the server and client can talk through `127.0.0.1` on one
-PC. The final LAN check must still be performed on two Windows PCs connected to
-the same network.
+## 자동 테스트
 
-## Local Automated Smoke Test
+- [ ] `python -m py_compile ...` 컴파일 PASS
+- [ ] `python scripts\smoke_test_local.py ...` 단일 파일 PASS
+- [ ] `python scripts\smoke_test_multi_files.py ...` 다중 파일 PASS
+- [ ] `python scripts\smoke_test_folder.py ...` 폴더 전송 PASS
+- [ ] `logs/`에 실패 로그가 남는지 확인
 
-1. Open PowerShell at the project root.
-2. Compile the automation scripts.
+## CLI 기능
 
-```powershell
-python -m py_compile scripts\create_dummy_file.py scripts\smoke_test_local.py
-```
+- [ ] 서버 실행: `python -m server.server_main --host 127.0.0.1 --port 5001`
+- [ ] 단일 파일 전송
+- [ ] 여러 파일 전송
+- [ ] 폴더 전송
+- [ ] 중복 파일명이 있으면 `_1`, `_2` suffix로 보존
+- [ ] 폴더 내부 구조가 `received/` 아래에 복원
 
-3. Create a small dummy file manually if needed.
+## GUI 기능
 
-```powershell
-python scripts\create_dummy_file.py --output sample.bin --size-kb 10
-```
+- [ ] `python -m gui.connectbox_gui` 실행
+- [ ] 받기 모드에서 Host/Port/저장 폴더 입력 가능
+- [ ] 받기 서버 시작 가능
+- [ ] 보내기 모드에서 서버 IP/Port 입력 가능
+- [ ] 파일 선택 가능
+- [ ] 여러 파일 선택 가능
+- [ ] 폴더 선택 가능
+- [ ] 현재 파일 진행률 표시
+- [ ] 전체 진행률 표시
+- [ ] 상태 로그 표시
+- [ ] 전송 완료 후 버튼이 다시 활성화
 
-4. Run the local smoke test.
+## LAN 시연
 
-```powershell
-python scripts\smoke_test_local.py
-```
+- [ ] 두 PC가 같은 LAN에 연결됨
+- [ ] 서버 PC IPv4 주소 확인
+- [ ] 서버 GUI 또는 CLI가 Host `0.0.0.0`으로 실행됨
+- [ ] 클라이언트가 서버 PC IPv4로 접속
+- [ ] Windows 방화벽 허용 확인
+- [ ] 수신 폴더에 파일 생성 확인
 
-5. Optional: run with an explicit port and file size.
+## 패키징
 
-```powershell
-python scripts\smoke_test_local.py --port 5001 --size-kb 100
-```
+- [ ] 패키징 PC에서 `python -m pip install pyinstaller`
+- [ ] `python scripts\build_exe.py --target gui`
+- [ ] `python scripts\build_exe.py --target client`
+- [ ] `python scripts\build_exe.py --target server`
+- [ ] `dist/` 결과물 생성 확인
+- [ ] `dist/`, `build/`, `*.spec`가 Git에 포함되지 않음
 
-6. Confirm that the script prints `PASS`.
-7. If it prints `FAIL`, open the log directory shown by the script and inspect
-   `server_stdout.log`, `server_stderr.log`, `client_stdout.log`, and
-   `client_stderr.log`.
+## Git 상태
 
-## Same-LAN Two-PC Test
-
-1. Connect both Windows PCs to the same Wi-Fi network or the same wired LAN.
-2. On the server PC, open PowerShell at the project root.
-3. Check the server PC IPv4 address.
-
-```powershell
-ipconfig
-```
-
-4. In the active network adapter section, find `IPv4 Address`. Use that address
-   as `<SERVER_IPV4>` on the client PC.
-5. Start the server on the server PC.
-
-```powershell
-python -m server.server_main --host 0.0.0.0 --port 5001 --save-dir received
-```
-
-6. On the client PC, create a test file.
-
-```powershell
-python scripts\create_dummy_file.py --output testdata\sample.bin --size-kb 100
-```
-
-7. On the client PC, send the file to the server PC.
-
-```powershell
-python -m client.client_main --host <SERVER_IPV4> --port 5001 --file testdata\sample.bin
-```
-
-8. On the server PC, check that the file appears in the `received` folder.
-9. Compare the original file size and received file size.
-
-## Windows Firewall Checks
-
-- If Windows shows a Python firewall prompt on the server PC, allow access for
-  the current private network.
-- Confirm that the server PC network profile is private when possible.
-- Confirm that TCP port `5001` is not blocked by Windows Defender Firewall or
-  third-party security software.
-- If changing the port, use the same port in both the server and client commands.
-
-## Connection Failure Checklist
-
-- Confirm the server command is already running before the client command.
-- Confirm the server command uses `--host 0.0.0.0` for the LAN test.
-- Confirm the client uses the server PC IPv4 address, not the client PC address.
-- Confirm both PCs are on the same LAN and can reach each other.
-- Confirm the server and client use the same TCP port.
-- Check whether another process is already using the selected port.
-- Review the server and client console output for connection or protocol errors.
-
-## File Receive Failure Checklist
-
-- Confirm the client file path exists and points to a file, not a folder.
-- Confirm the server has permission to create files in the save directory.
-- Check whether the received file was saved with a suffix such as `_1` because a
-  file with the same name already existed.
-- Compare source and received file sizes.
-- Review server output for errors after the client connects.
-- Review client output for errors after sending the file body.
-
-## Demo Readiness Checklist
-
-- Run `python -m py_compile scripts\create_dummy_file.py scripts\smoke_test_local.py`.
-- Run `python scripts\smoke_test_local.py --size-kb 10` and confirm whether it
-  prints `PASS` or a clear `FAIL` reason.
-- Prepare two Windows PCs on the same LAN.
-- Confirm the server PC IPv4 address with `ipconfig`.
-- Confirm Windows Firewall allows Python on the server PC.
-- Prepare a small test file first, then a larger file if time allows.
-- Clear or note the `received` folder contents before the demo.
-- Keep PowerShell windows open for both server and client output.
+- [ ] 코드/문서 변경만 추적됨
+- [ ] `logs/`, `received/`, `testdata/`, `build/`, `dist/` 산출물이 추적되지 않음
