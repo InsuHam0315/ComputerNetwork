@@ -21,3 +21,9 @@ dist/
 logs/
 testdata/
 sample.bin
+
+# Auto test / generated outputs
+auto_test_sample.bin
+outputs/
+received_auto_test/
+received_auto_test_python/
