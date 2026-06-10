@@ -1,4 +1,4 @@
-__pycache__/
+﻿__pycache__/
 *.py[cod]
 *.pyo
 
@@ -9,21 +9,27 @@ env/
 .idea/
 .vscode/
 
+# Generated receive/test outputs
 received/
-*.log
-
-sample.bin
+received_auto_test/
+received_auto_test_python/
 testdata/
 logs/
+outputs/
+sample.bin
+auto_test_sample.bin
+*.log
+
+# PyInstaller outputs
 build/
 dist/
 *.spec
-logs/
-testdata/
-sample.bin
 
-# Auto test / generated outputs
-auto_test_sample.bin
-outputs/
-received_auto_test/
-received_auto_test_python/
+# Local Codex / OMX workspace files
+.codex/
+.omx/
+AGENTS.md
+
+# OS files
+.DS_Store
+Thumbs.db
