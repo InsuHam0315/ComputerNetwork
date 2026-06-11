@@ -9,6 +9,7 @@ packaging PC when an exe build is needed:
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -28,6 +29,13 @@ TARGETS = {
     "client": BuildTarget("client", "ConnectBoxClient", Path("client/client_main.py")),
     "server": BuildTarget("server", "ConnectBoxServer", Path("server/server_main.py")),
 }
+
+GUI_ICON = Path("assets/connectbox_icon.ico")
+GUI_ASSETS = (
+    Path("assets/connectbox_logo.png"),
+    Path("assets/connectbox_icon.ico"),
+    Path("assets/connectbox_icon.png"),
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -71,6 +79,13 @@ def build_target(project_root: Path, target: BuildTarget, onefile: bool) -> None
         command.append("--onefile")
     if target.windowed:
         command.append("--windowed")
+    if target.key == "gui":
+        icon_path = project_root / GUI_ICON
+        if icon_path.exists():
+            command.extend(["--icon", str(GUI_ICON)])
+        for asset_path in GUI_ASSETS:
+            if (project_root / asset_path).exists():
+                command.extend(["--add-data", f"{asset_path}{os.pathsep}assets"])
     command.append(str(target.entry))
 
     print(f"Building {target.name} from {target.entry}...")
